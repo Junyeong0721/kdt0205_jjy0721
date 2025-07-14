@@ -1,166 +1,389 @@
-# 소스 코드
+## 소스 코드
+
+# DPHelper
 ```
-package JAVADB.SEC1;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 
-import java.sql.*;
-import java.util.Scanner;
+public class DBHelper {
+    private static final String db_hostname = "localhost";
+    private static final int db_portnumber = 3306;
+    private static final String db_database = "school";
+    private static final String db_charset = "utf8";
+    private static final String db_username = "root";
+    private static final String db_password = "1234";
 
+    private Connection conn = null;
 
-public class DBstdTest {
+    // ------------ 싱글톤 객체 시작 --------------
+    private static DBHelper current;
 
-    public EnumMenu getMenu() {
-        Scanner scan = new Scanner(System.in);
-        int nMenu = -1;
-        while (true) {
-            System.out.println("---------------------------------------------");
-            System.out.println("1. 모든 학생 정보 보기");
-            System.out.println("2. 학생 추가하기");
-            System.out.println("3. 학생 삭제하기");
-            System.out.println("4. 학생 정보 수정하기...(전화번호와 이메일 수정)");
-            System.out.println("0. 종료하기...");
-            System.out.println("---------------------------------------------");
-            System.out.print("메뉴를 입력하시오: ");
+    public static DBHelper getInstance() {
+        if (current == null) {
+            current = new DBHelper();
+        }
+        return current;
+    }
+
+    public static void freeInstance() {
+        current = null;
+    }
+
+    private DBHelper() { }
+    // ------------ 싱글톤 객체 끝 --------------
+
+    /** 데이터베이스에 접속 후, 접속 객체 return */
+    public Connection open() {
+        if (conn == null) {
+            String urlFormat = "jdbc:mysql://%s:%d/%s?&characterEncoding=%s";
+            String url = String.format(urlFormat, db_hostname, db_portnumber, db_database, db_charset);
+
             try {
-                nMenu = Integer.parseInt(scan.nextLine());
-                if (nMenu >= 0 && nMenu <= 4) break;
-            } catch (Exception e) { }
-            System.out.println("잘못된 선택입니다....");
+                Class.forName("com.mysql.cj.jdbc.Driver");
+                conn = DriverManager.getConnection(url, db_username, db_password);
+                System.out.println("=== DATABASE Connect Success ===");
+            } catch (ClassNotFoundException e) {
+                System.out.println("=== DATABASE Connect Fail ===");
+                System.out.println(e.getMessage());
+            } catch (SQLException e) {
+                System.out.println("=== DATABASE Connect Fail ===");
+                System.out.println(e.getMessage());
+            }
         }
-        switch (nMenu) {
-            case 1: return EnumMenu.MENU_LIST;
-            case 2: return EnumMenu.MENU_INSERT;
-            case 3: return EnumMenu.MENU_DELETE;
-            case 4: return EnumMenu.MENU_UPDATE;
-            default: return EnumMenu.MENU_EXIT;
-        }
+        return conn;
     }
 
-   
+    /** 데이터베이스 접속 해제 */
+    public void close() {
+        if (conn != null) {
+            try {
+                conn.close();
+                System.out.println("=== DATABASE Disconnect Success ===");
+            } catch (Exception e) {
+                System.out.println("=== DATABASE Disconnect Fail ===");
+                System.out.println(e.getMessage());
+            }
+            conn = null;
+        }
+    }
+}
+```
 
+# Student
+```
+public class Student {
+    private int stdno;
+    private String stdname;
+    private String phone;
+    private String email;
 
-    public Connection makeConnection() {
-        String url = "jdbc:mysql://localhost/school_db?serverTimezone=Asia/Seoul";
-        String userName = "root";
-        String userPass = "1234";
-        Connection con = null;
+    public Student(int stdno, String stdname, String phone, String email) {
+        super();
+        this.stdno = stdno;
+        this.stdname = stdname;
+        this.phone = phone;
+        this.email = email;
+    }
+
+    public int getStdno() {
+        return stdno;
+    }
+
+    public void setStdno(int stdno) {
+        this.stdno = stdno;
+    }
+
+    public String getStdname() {
+        return stdname;
+    }
+
+    public void setStdname(String stdname) {
+        this.stdname = stdname;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    @Override
+    public String toString() {
+        return "Student [stdno=" + stdno + ", stdname=" + stdname + ", phone=" + phone + ", email=" + email + "]";
+    }
+}
+```
+
+# StudentDao
+```
+import java.util.List;
+
+public interface StudentDao {
+    public int insert(Student params);
+    public int delete(int params);
+    public int update(Student params);
+    public Student selectOne(int params);
+    public List<Student> select();
+}
+```
+
+# StudentDaoImpl
+```
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+public class StudentDaoImpl implements StudentDao {
+
+    /** 데이터 베이스 접속 객체 */
+    private Connection conn;
+
+    /** 생성자를 통해서 데이터베이스 접속 객체를 전달 받는다. */
+    public StudentDaoImpl(Connection conn) {
+        this.conn = conn;
+    }
+
+    @Override
+    public int insert(Student params) {
+        int result = 0;
+        String sql = "INSERT INTO student (stdname, phone, email) VALUES (?, ?, ?)";
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+
         try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            System.out.println("데이터베이스 연결중 ...");
-            con = DriverManager.getConnection(url, userName, userPass);
-            System.out.println("데이터베이스 연결 성공");
-        } catch (ClassNotFoundException e) {
-            System.out.println("JDBC 드라이버를 찾지 못했습니다...");
-        } catch (SQLException e) {
-            System.out.println("데이터베이스 연결 실패: " + e.getMessage());
-        }
-        return con;
-    }
-
-    public void doList() {
-        String sql = "SELECT * FROM student";
-        try (Connection con = makeConnection();
-             PreparedStatement pstmt = con.prepareStatement(sql);
-             ResultSet rs = pstmt.executeQuery()) {
-            while (rs.next()) {
-                System.out.printf("학번: %d\t이름: %s\t전화번호: %s\t이메일: %s\n",
-                        rs.getInt("stdno"), rs.getString("stdname"),
-                        rs.getString("phone"), rs.getString("email"));
-            }
-        } catch (SQLException e) {
-            System.out.println("조회 오류: " + e.getMessage());
-        }
-    }
-
-    public void doInsert() {
-        Scanner scan = new Scanner(System.in);
-        System.out.print("학번: ");
-        int stdno = Integer.parseInt(scan.nextLine());
-        System.out.print("이름: ");
-        String stdname = scan.nextLine();
-        System.out.print("전화번호: ");
-        String phone = scan.nextLine();
-        System.out.print("이메일: ");
-        String email = scan.nextLine();
-
-        String sql = "INSERT INTO student(stdno, stdname, phone, email) VALUES (?, ?, ?, ?)";
-        try (Connection con = makeConnection();
-             PreparedStatement pstmt = con.prepareStatement(sql)) {
-            pstmt.setInt(1, stdno);
-            pstmt.setString(2, stdname);
-            pstmt.setString(3, phone);
-            pstmt.setString(4, email);
+            pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            pstmt.setString(1, params.getStdname());
+            pstmt.setString(2, params.getPhone());
+            pstmt.setString(3, params.getEmail());
             pstmt.executeUpdate();
-            System.out.println("학생 정보가 추가되었습니다.");
+
+            rs = pstmt.getGeneratedKeys();
+            rs.next();
+            result = rs.getInt(1);
         } catch (SQLException e) {
-            System.out.println("삽입 오류: " + e.getMessage());
+            System.out.println("MySQL SQL Fail : " + e.getMessage());
+        } finally {
+            try { if (rs != null) rs.close(); } catch (Exception e) {}
+            try { if (pstmt != null) pstmt.close(); } catch (Exception e) {}
         }
+        return result;
     }
 
-    public void doDelete() {
-        Scanner scan = new Scanner(System.in);
-        System.out.print("삭제할 학번: ");
-        int stdno = Integer.parseInt(scan.nextLine());
+    @Override
+    public int delete(int params) {
+        int result = 0;
+        String sql = "DELETE FROM student WHERE stdno=?";
+        PreparedStatement pstmt = null;
 
-        String sql = "DELETE FROM student WHERE stdno = ?";
-        try (Connection con = makeConnection();
-             PreparedStatement pstmt = con.prepareStatement(sql)) {
-            pstmt.setInt(1, stdno);
-            int result = pstmt.executeUpdate();
-            if (result > 0) System.out.println("삭제되었습니다.");
-            else System.out.println("해당 학번이 존재하지 않습니다.");
+        try {
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setInt(1, params);
+            result = pstmt.executeUpdate();
         } catch (SQLException e) {
-            System.out.println("삭제 오류: " + e.getMessage());
+            System.out.println("MySQL SQL Fail : " + e.getMessage());
+        } finally {
+            try { if (pstmt != null) pstmt.close(); } catch (Exception e) {}
         }
+
+        return result;
     }
 
-    public void doUpdate() {
-        Scanner scan = new Scanner(System.in);
-        System.out.print("수정할 학번: ");
-        int stdno = Integer.parseInt(scan.nextLine());
-        System.out.print("새 전화번호: ");
-        String phone = scan.nextLine();
-        System.out.print("새 이메일: ");
-        String email = scan.nextLine();
+    @Override
+    public int update(Student params) {
+        int result = 0;
+        String sql = "UPDATE student SET phone=?, email=? WHERE stdno=?";
+        PreparedStatement pstmt = null;
 
-        String sql = "UPDATE student SET phone = ?, email = ? WHERE stdno = ?";
-        try (Connection con = makeConnection();
-             PreparedStatement pstmt = con.prepareStatement(sql)) {
-            pstmt.setString(1, phone);
-            pstmt.setString(2, email);
-            pstmt.setInt(3, stdno);
-            int result = pstmt.executeUpdate();
-            if (result > 0) System.out.println("수정되었습니다.");
-            else System.out.println("해당 학번이 존재하지 않습니다.");
+        try {
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setString(1, params.getPhone());
+            pstmt.setString(2, params.getEmail());
+            pstmt.setInt(3, params.getStdno());
+            result = pstmt.executeUpdate();
         } catch (SQLException e) {
-            System.out.println("수정 오류: " + e.getMessage());
+            System.out.println("MySQL SQL Fail : " + e.getMessage());
+        } finally {
+            try { if (pstmt != null) pstmt.close(); } catch (Exception e) {}
         }
+
+        return result;
     }
+
+    @Override
+    public Student selectOne(int params) {
+        Student result = null;
+        String sql = "SELECT stdno, stdname, phone, email FROM student WHERE stdno=?";
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+
+        try {
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setInt(1, params);
+            rs = pstmt.executeQuery();
+
+            boolean first = rs.next();
+            if (first) {
+                int stdno = rs.getInt("stdno");
+                String stdname = rs.getString("stdname");
+                String phone = rs.getString("phone");
+                String email = rs.getString("email");
+
+                result = new Student(stdno, stdname, phone, email);
+            } else {
+                System.out.println("조회 결과가 없습니다.");
+            }
+        } catch (SQLException e) {
+            System.out.println("MySQL SQL Fail : " + e.getMessage());
+        } finally {
+            try { if (rs != null) rs.close(); } catch (Exception e) {}
+            try { if (pstmt != null) pstmt.close(); } catch (Exception e) {}
+        }
+
+        return result;
+    }
+
+    @Override
+    public List<Student> select() {
+        List<Student> result = null;
+        String sql = "SELECT stdno, stdname, phone, email FROM student";
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+
+        try {
+            pstmt = conn.prepareStatement(sql);
+            rs = pstmt.executeQuery();
+            result = new ArrayList<Student>();
+
+            while (rs.next()) {
+                int stdno = rs.getInt("stdno");
+                String stdname = rs.getString("stdname");
+                String phone = rs.getString("phone");
+                String email = rs.getString("email");
+
+                Student item = new Student(stdno, stdname, phone, email);
+                result.add(item);
+            }
+        } catch (SQLException e) {
+            System.out.println("MySQL SQL Fail : " + e.getMessage());
+        } finally {
+            try { if (rs != null) rs.close(); } catch (Exception e) {}
+            try { if (pstmt != null) pstmt.close(); } catch (Exception e) {}
+        }
+
+        return result;
+    }
+}
+```
+# main01
+```
+import java.sql.Connection;
+
+public class Main01 {
     public static void main(String[] args) {
-        DBstdTest stdDemo = new DBstdTest(); // 클래스 이름에 맞게 수정
-        while (true) {
-            EnumMenu menu = stdDemo.getMenu();
-            switch (menu) {
-                case MENU_LIST:
-                    System.out.println("리스트 보기 메뉴를 선택하셨습니다...");
-                    stdDemo.doList();
-                    break;
-                case MENU_INSERT:
-                    System.out.println("추가 메뉴를 선택하셨습니다...");
-                    stdDemo.doInsert();
-                    break;
-                case MENU_DELETE:
-                    System.out.println("삭제 메뉴를 선택하셨습니다...");
-                    stdDemo.doDelete();
-                    break;
-                case MENU_UPDATE:
-                    System.out.println("수정 메뉴를 선택하셨습니다...");
-                    stdDemo.doUpdate();
-                    break;
-                default:
-                    System.out.println("프로그램을 종료합니다.");
-                    System.exit(0);
+        Connection conn = DBHelper.getInstance().open();
+        if (conn == null) {
+            System.out.println("데이터베이스 접속 실패");
+            return;
+        }
+
+        Student model = new Student(0, "홍길동", "010-1234-5678", "hong@school.com");
+
+        StudentDao dao = new StudentDaoImpl(conn);
+        int result = dao.insert(model);
+
+        System.out.println(result + "번 데이터 저장됨");
+
+        DBHelper.getInstance().close();
+    }
+}
+```
+
+# main02
+```
+import java.sql.Connection;
+
+public class Main02 {
+    public static void main(String[] args) {
+        Connection conn = DBHelper.getInstance().open();
+        if (conn == null) {
+            System.out.println("데이터베이스 접속 실패");
+            return;
+        }
+
+        int target = 1;
+
+        StudentDao dao = new StudentDaoImpl(conn);
+        int result = dao.delete(target);
+
+        System.out.println(result + "개의 데이터 삭제됨");
+
+        DBHelper.getInstance().close();
+    }
+}
+```
+
+#main 03
+
+```
+import java.sql.Connection;
+
+public class Main03 {
+    public static void main(String[] args) {
+        Connection conn = DBHelper.getInstance().open();
+        if (conn == null) {
+            System.out.println("데이터베이스 접속 실패");
+            return;
+        }
+
+        Student model = new Student(1, null, "010-7777-8888", "newmail@school.com");
+
+        StudentDao dao = new StudentDaoImpl(conn);
+        int result = dao.update(model);
+
+        System.out.println(result + "개의 데이터 수정됨");
+
+        DBHelper.getInstance().close();
+    }
+}
+```
+
+#DaoDemo
+```
+import java.sql.Connection;
+import java.util.List;
+
+public class DaoDemo1 {
+    public static void main(String[] args) {
+        Connection conn = DBHelper.getInstance().open();
+        if (conn == null) {
+            System.out.println("데이터베이스 접속 실패");
+            return;
+        }
+
+        StudentDao dao = new StudentDaoImpl(conn);
+        List<Student> result = dao.select();
+
+        if (result == null) {
+            System.out.println("조회결과 없음");
+        } else {
+            for (int i = 0; i < result.size(); i++) {
+                Student item = result.get(i);
+                System.out.println(item.toString());
             }
         }
+
+        DBHelper.getInstance().close();
     }
 }
 ```
