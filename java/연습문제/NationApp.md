@@ -1,6 +1,7 @@
 # 소스 코드
 
 ```
+
 package streamproject.Testpack;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -82,21 +83,21 @@ public class NationApp extends JFrame {
 		DefaultTableModel model = (DefaultTableModel) jTable.getModel();
 		model.setRowCount(0);
 
-		List<Nation> sorted = Nation.nations;
+		List<Nation> sortedNationList = Nation.nations;
 
 		String selected = (String) cmbOrder.getSelectedItem();
 		if ("국가별".equals(selected)) {
-			sorted = sorted.stream().sorted(Comparator.comparing(Nation::getName)).collect(Collectors.toList());
+			sortedNationList = sortedNationList.stream().sorted(Comparator.comparing(Nation::getName)).collect(Collectors.toList());
 		} else if ("인구수".equals(selected)) {
-			sorted = sorted.stream().sorted(Comparator.comparingDouble(Nation::getPopulation).reversed())
+			sortedNationList = sortedNationList.stream().sorted(Comparator.comparingDouble(Nation::getPopulation).reversed())
 					.collect(Collectors.toList());
 		} else if ("GDP".equals(selected)) {
 
-			sorted = sorted.stream().sorted(Comparator.comparing(Nation::getGdpRank)).collect(Collectors.toList());
+			sortedNationList = sortedNationList.stream().sorted(Comparator.comparing(Nation::getGdpRank)).collect(Collectors.toList());
 		}
 
 		int no = 1;
-		for (Nation n : sorted) {
+		for (Nation n : sortedNationList) {
 			model.addRow(new Object[] { no++, n.getName(), n.getType(), n.getPopulation(), n.getGdpRank() });
 		}
 	}
