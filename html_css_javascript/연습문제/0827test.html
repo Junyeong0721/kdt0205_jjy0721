@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>회원가입</title>
+  <link rel="stylesheet" href="signup.css" />
+</head>
+<body>
+  <div class="signup-form">
+    <h2>회원가입</h2>
+
+    <form action="signup" method="post" id="signupForm" novalidate>
+      <label for="name">이름</label>
+      <input type="text" id="name" name="name" />
+      <div id="nameError" class="error"></div>
+
+      <label for="email">이메일</label>
+      <input type="email" id="email" name="email" />
+      <div id="emailError" class="error"></div>
+
+      <label for="password">비밀번호</label>
+      <input type="password" id="password" name="password" />
+      <div id="passwordError" class="error"></div>
+
+      <label for="confirm_password">비밀번호 확인</label>
+      <input type="password" id="confirm_password" name="confirm_password" />
+      <div id="confirmError" class="error"></div>
+
+      <label for="phone">전화번호</label>
+      <input type="tel" id="phone" name="phone" />
+      <div id="phoneError" class="error"></div>
+
+      <label for="address">주소</label>
+      <input type="text" id="address" name="address" />
+      <div id="addressError" class="error"></div>
+
+      <input type="submit" value="가입하기" />
+    </form>
+  </div>
+
+  <script>
+    const form           = document.getElementById('signupForm');
+    const nameInput      = document.getElementById('name');
+    const emailInput     = document.getElementById('email');
+    const passwordInput  = document.getElementById('password');
+    const confirmInput   = document.getElementById('confirm_password');
+    const phoneInput     = document.getElementById('phone');
+    const addressInput   = document.getElementById('address');
+
+    const nameError      = document.getElementById('nameError');
+    const emailError     = document.getElementById('emailError');
+    const passwordError  = document.getElementById('passwordError');
+    const confirmError   = document.getElementById('confirmError');
+    const phoneError     = document.getElementById('phoneError');
+    const addressError   = document.getElementById('addressError');
+
+    // 최소 검증: 첫 에러만 보여주고 즉시 중단 (초간단 패턴, 에러 초기화 없음)
+    form.addEventListener('submit', (e) => {
+      if (nameInput.value === '') { nameError.textContent = '이름을 입력하세요.'; e.preventDefault(); return; }
+      if (emailInput.value === '') { emailError.textContent = '이메일을 입력하세요.'; e.preventDefault(); return; }
+      if (passwordInput.value === '') { passwordError.textContent = '비밀번호를 입력하세요.'; e.preventDefault(); return; }
+      if (confirmInput.value === '') { confirmError.textContent = '비밀번호 확인을 입력하세요.'; e.preventDefault(); return; }
+      if (phoneInput.value === '') { phoneError.textContent = '전화번호를 입력하세요.'; e.preventDefault(); return; }
+      if (addressInput.value === '') { addressError.textContent = '주소를 입력하세요.'; e.preventDefault(); return; }
+
+      if (passwordInput.value.length < 6 || passwordInput.value.length > 20) {
+        passwordError.textContent = '비밀번호는 6~20자여야 합니다.';
+        e.preventDefault(); return;
+      }
+      if (passwordInput.value !== confirmInput.value) {
+        confirmError.textContent = '비밀번호가 일치하지 않습니다.';
+        e.preventDefault(); return;
+      }
+      // 통과 시 전송 (추가 조치 없음)
+    });
+  </script>
+</body>
+</html>
